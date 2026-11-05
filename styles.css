@@ -1,0 +1,42 @@
+/* Let the browser scroll, but leave pinch gestures to the plugin. */
+.markdown-reading-view > .markdown-preview-view,
+.markdown-source-view .cm-scroller {
+	touch-action: pan-x pan-y;
+}
+
+/* Images grow with the text. Per-image zoom changes only that image's layout size, so
+   Obsidian's and CodeMirror's measurements stay correct; max-width: 100% still applies. */
+.reading-zoom-scaled :is(.markdown-preview-sizer, .cm-sizer) :is(img, video) {
+	zoom: var(--reading-zoom, 1);
+}
+
+/* Magnify mode: allow panning sideways. */
+.markdown-reading-view > .markdown-preview-view.reading-zoom-magnified {
+	overflow-x: auto;
+}
+
+.reading-zoom-host {
+	position: relative;
+}
+
+.reading-zoom-indicator {
+	position: absolute;
+	top: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: var(--layer-popover);
+	padding: 4px 12px;
+	border-radius: var(--radius-m);
+	background: var(--background-secondary-alt);
+	color: var(--text-normal);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-small);
+	font-variant-numeric: tabular-nums;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 150ms ease;
+}
+
+.reading-zoom-indicator.is-visible {
+	opacity: 1;
+}
