@@ -1,4 +1,4 @@
-import { App, MarkdownView, Plugin, PluginSettingTab, Setting, debounce } from "obsidian";
+import { App, MarkdownView, Plugin, PluginSettingTab, Setting, type SettingDefinitionItem, debounce } from "obsidian";
 import { EditorView } from "@codemirror/view";
 
 type ZoomMode = "reflow" | "magnify";
@@ -155,7 +155,8 @@ export default class ReadingZoomPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const data = (await this.loadData()) as Partial<ReadingZoomSettings> | null;
+		this.settings = { ...DEFAULT_SETTINGS, ...data };
 	}
 
 	async saveSettings() {
@@ -606,107 +607,115 @@ export default class ReadingZoomPlugin extends Plugin {
 	}
 }
 
+const percent = (value: number) => `${Math.round(value * 100)} %`;
+
 class ReadingZoomSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: ReadingZoomPlugin) {
 		super(app, plugin);
 	}
 
+	/** Declarative settings (Obsidian 1.13+): rendered by Obsidian and included in settings search. */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Reading view zoom mode",
+				desc:
+					"Reflow: text and images grow and rewrap to the pane width, like browser zoom. " +
+					"Magnify: the page grows wider and you pan sideways, like a PDF.",
+				control: {
+					type: "dropdown",
+					key: "mode",
+					options: { reflow: "Reflow", magnify: "Magnify" },
+					defaultValue: DEFAULT_SETTINGS.mode,
+				},
+			},
+			{
+				name: "Zoom in editing view",
+				desc: "Also pinch to zoom in Live Preview and Source mode.",
+				control: { type: "toggle", key: "enableInEditing", defaultValue: DEFAULT_SETTINGS.enableInEditing },
+			},
+			{
+				name: "Minimum zoom",
+				control: {
+					type: "slider",
+					key: "minZoom",
+					min: 0.25,
+					max: 1,
+					step: 0.05,
+					defaultValue: DEFAULT_SETTINGS.minZoom,
+					displayFormat: percent,
+				},
+			},
+			{
+				name: "Maximum zoom",
+				control: {
+					type: "slider",
+					key: "maxZoom",
+					min: 1.5,
+					max: 8,
+					step: 0.5,
+					defaultValue: DEFAULT_SETTINGS.maxZoom,
+					displayFormat: percent,
+				},
+			},
+			{
+				name: "Two-finger tap resets zoom",
+				control: { type: "toggle", key: "twoFingerTapReset", defaultValue: DEFAULT_SETTINGS.twoFingerTapReset },
+			},
+			{
+				name: "Trackpad pinch / Ctrl+scroll",
+				desc: "Also zoom with a trackpad pinch or Ctrl+mouse wheel.",
+				control: { type: "toggle", key: "trackpadPinch", defaultValue: DEFAULT_SETTINGS.trackpadPinch },
+			},
+			{
+				name: "Reset zoom when opening another note",
+				control: { type: "toggle", key: "resetOnFileChange", defaultValue: DEFAULT_SETTINGS.resetOnFileChange },
+			},
+			{
+				name: "Show zoom percentage while zooming",
+				control: { type: "toggle", key: "showIndicator", defaultValue: DEFAULT_SETTINGS.showIndicator },
+			},
+		];
+	}
+
+	getControlValue(key: string): unknown {
+		return this.plugin.settings[key as keyof ReadingZoomSettings];
+	}
+
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		// Changing how or where zoom applies: start over at 100 % everywhere.
+		if (key === "mode" || key === "enableInEditing") this.plugin.resetAll();
+		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
+		await this.plugin.saveSettings();
+	}
+
+	/**
+	 * Fallback for Obsidian < 1.13, which ignores getSettingDefinitions().
+	 * Renders the same definitions with the imperative Setting API.
+	 */
 	display(): void {
 		const { containerEl } = this;
-		const s = this.plugin.settings;
-		const save = () => this.plugin.saveSettings();
 		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Reading view zoom mode")
-			.setDesc(
-				"Reflow: text and images grow and rewrap to the pane width, like browser zoom. " +
-					"Magnify: the page is scaled up and you pan around, like a PDF."
-			)
-			.addDropdown((d) =>
-				d
-					.addOption("reflow", "Reflow")
-					.addOption("magnify", "Magnify")
-					.setValue(s.mode)
-					.onChange(async (v) => {
-						this.plugin.resetAll();
-						s.mode = v as ZoomMode;
-						await save();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Zoom in editing view")
-			.setDesc("Also pinch to zoom in Live Preview and Source mode.")
-			.addToggle((t) =>
-				t.setValue(s.enableInEditing).onChange(async (v) => {
-					this.plugin.resetAll();
-					s.enableInEditing = v;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Minimum zoom")
-			.addSlider((sl) =>
-				sl
-					.setLimits(0.25, 1, 0.05)
-					.setValue(s.minZoom)
-					.setDynamicTooltip()
-					.onChange(async (v) => {
-						s.minZoom = v;
-						await save();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Maximum zoom")
-			.addSlider((sl) =>
-				sl
-					.setLimits(1.5, 8, 0.5)
-					.setValue(s.maxZoom)
-					.setDynamicTooltip()
-					.onChange(async (v) => {
-						s.maxZoom = v;
-						await save();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Two-finger tap resets zoom")
-			.addToggle((t) =>
-				t.setValue(s.twoFingerTapReset).onChange(async (v) => {
-					s.twoFingerTapReset = v;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Trackpad pinch / Ctrl+scroll")
-			.setDesc("Also zoom with a trackpad pinch or Ctrl+mouse wheel.")
-			.addToggle((t) =>
-				t.setValue(s.trackpadPinch).onChange(async (v) => {
-					s.trackpadPinch = v;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Reset zoom when opening another note")
-			.addToggle((t) =>
-				t.setValue(s.resetOnFileChange).onChange(async (v) => {
-					s.resetOnFileChange = v;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Show zoom percentage while zooming")
-			.addToggle((t) =>
-				t.setValue(s.showIndicator).onChange(async (v) => {
-					s.showIndicator = v;
-					await save();
-				})
-			);
+		for (const item of this.getSettingDefinitions()) {
+			if (!("control" in item) || !item.control) continue;
+			const control = item.control;
+			const setting = new Setting(containerEl).setName(item.name);
+			if (item.desc) setting.setDesc(item.desc);
+			const value = this.getControlValue(control.key);
+			const save = (v: unknown) => void this.setControlValue(control.key, v);
+			switch (control.type) {
+				case "toggle":
+					setting.addToggle((t) => t.setValue(value as boolean).onChange(save));
+					break;
+				case "dropdown":
+					setting.addDropdown((d) => d.addOptions(control.options).setValue(value as string).onChange(save));
+					break;
+				case "slider":
+					setting.addSlider((s) =>
+						s.setLimits(control.min, control.max, control.step).setValue(value as number).onChange(save)
+					);
+					break;
+			}
+		}
 	}
 }

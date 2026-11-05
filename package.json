@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-reading-zoom",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "Pinch to zoom in Obsidian reading and editing view",
 	"main": "main.js",
 	"scripts": {
@@ -11,9 +11,11 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^20.0.0",
-		"builtin-modules": "^3.3.0",
 		"esbuild": "^0.25.12",
 		"obsidian": "latest",
 		"typescript": "^5.4.0"
+	},
+	"dependencies": {
+		"@codemirror/view": "6.43.13"
 	}
 }

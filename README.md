@@ -32,6 +32,15 @@ npm run install-plugin -- "/path/to/Vault"
 
 `npm run dev` rebuilds on every change.
 
+### Releasing
+
+1. Set the same new version in `manifest.json` and `package.json`.
+2. Commit, then push a tag that matches the version exactly (no `v` prefix):
+   ```bash
+   git tag 1.2.3 && git push origin 1.2.3
+   ```
+3. The [release workflow](.github/workflows/release.yml) builds the plugin, attests `main.js`, `manifest.json` and `styles.css` (build provenance), and creates a **draft** release. Review it on GitHub and publish it.
+
 ## How it works
 
 - **Text** is scaled through Obsidian's `--font-preferred-size` variable, and the readable line width through `--file-line-width`.
