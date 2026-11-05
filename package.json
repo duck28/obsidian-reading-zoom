@@ -12,7 +12,7 @@
 	"devDependencies": {
 		"@types/node": "^20.0.0",
 		"builtin-modules": "^3.3.0",
-		"esbuild": "^0.21.0",
+		"esbuild": "^0.25.12",
 		"obsidian": "latest",
 		"typescript": "^5.4.0"
 	}
