@@ -144,8 +144,6 @@ export default class ReadingZoomPlugin extends Plugin {
 			name: "Reset zoom",
 			checkCallback: (checking) => this.runZoomCommand(checking, null),
 		});
-
-		console.log(`Reading Zoom ${this.manifest.version} loaded`);
 	}
 
 	onunload() {
@@ -556,9 +554,12 @@ export default class ReadingZoomPlugin extends Plugin {
 			// Magnify: widen the page with the zoom so lines don't rewrap; pan sideways.
 			const { scroller, sizer } = parts;
 			const magnify = zoomed && this.settings.mode === "magnify" && state.baseWidth !== null;
-			sizer.style.width = magnify ? `${(state.baseWidth ?? 0) * state.zoom}px` : "";
-			sizer.style.maxWidth = magnify ? "none" : "";
-			sizer.style.boxSizing = magnify ? "border-box" : "";
+			// The width is dynamic, so it goes through a CSS variable; the rest is in styles.css.
+			if (magnify) {
+				sizer.style.setProperty("--reading-zoom-page-width", `${(state.baseWidth ?? 0) * state.zoom}px`);
+			} else {
+				sizer.style.removeProperty("--reading-zoom-page-width");
+			}
 			scroller.toggleClass("reading-zoom-magnified", magnify);
 		}
 	}

@@ -15,6 +15,13 @@
 	overflow-x: auto;
 }
 
+/* Magnify mode: the page grows with the zoom instead of rewrapping. */
+.markdown-reading-view > .markdown-preview-view.reading-zoom-magnified > .markdown-preview-sizer {
+	width: var(--reading-zoom-page-width);
+	max-width: none;
+	box-sizing: border-box;
+}
+
 .reading-zoom-host {
 	position: relative;
 }
